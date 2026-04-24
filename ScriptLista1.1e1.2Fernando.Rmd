@@ -1,0 +1,402 @@
+---
+title: "Listas 1.1 e 1.2"
+author: "**MAE0007 - Análise Multivariada**"
+date: "2026-03-10"
+output:
+  pdf_document:
+    latex_engine: lualatex
+---
+
+UFRN - PPGMAE  
+
+
+**Professor:** Rodrigo Matheus Rocha de Medeiros  
+**Discente:** Fernando António João Correia  
+**Matrícula:** 20261006554
+
+Natal, 10 de Março de 2026
+
+
+
+# Introdução
+
+Este relatório apresenta a resolução das Listas 1.1 e 1.2 da disciplina **Análise Multivariada**.  
+Foram utilizados recursos da linguagem **R** para cálculo de estatísticas descritivas, matrizes de covariância, correlação, padronização de dados, visualização gráfica e decomposição espectral de matrizes.
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(gridExtra)
+library(GGally)
+library(tidyverse)
+library(corrplot)
+library(rstatix)
+library(knitr)
+data("PlantGrowth")
+data("USArrests")
+
+donne <- PlantGrowth
+dados <- USArrests
+
+colnames(dados) <- c("Assassinato", "Assalto", "Pop_Urbana", "Estupro")
+
+estados <- dados[c("California","Nevada","North Dakota","Vermont"),]
+estados$Estado <- rownames(estados)
+```
+
+
+
+
+
+# Exercício 1
+
+Considere a matriz de dados:
+
+```{r}
+X <- matrix(c(
+0.8,0.1,0.4,0.5,
+0.9,0.5,0.3,0.1,
+0.7,0.1,0.4,0.5,
+1.0,0.3,0.3,1.0
+), nrow=4, byrow=TRUE)
+X
+```
+
+
+
+
+## (a) Vetor de médias, matriz de covariâncias e matriz de correlações
+
+### Vetor das médias
+
+```{r}
+X_medias <- colMeans(X)
+X_medias
+```
+
+### Matriz de covariâncias
+
+```{r}
+X_covariancias <- cov(X)
+X_covariancias
+```
+
+### Matriz de correlações
+
+```{r}
+Correlacao <- cor(X)
+Correlacao
+```
+
+## (b) Padronização da matriz de dados
+
+```{r}
+Z <- scale(X)
+Z
+```
+
+
+
+## (c) Médias e matriz de covariância dos dados padronizados
+
+### Vetor de médias
+
+```{r}
+Z_medias <- colMeans(Z)
+Z_medias
+```
+
+Observa-se que as médias são aproximadamente iguais a zero.
+
+### Matriz de covariância
+
+```{r}
+Z_covariancia <- cov(Z)
+Z_covariancia
+```
+
+Comparação com a matriz de correlação original:
+
+```{r}
+Correlacao
+```
+
+Verifica-se que **a matriz de covariância dos dados padronizados é igual à matriz de correlação da matriz original**.
+
+
+# Exercício 2
+
+O conjunto de dados **USArrests** contém informações sobre taxas de crimes em 50 estados dos EUA em 1973.
+
+
+
+## Exploração inicial dos dados
+
+```{r}
+glimpse(dados)
+summary(dados)
+```
+
+### Histogramas
+
+```{r}
+h1 <- ggplot(dados, aes(x=Assassinato)) + geom_histogram()
+h2 <- ggplot(dados, aes(x=Assalto)) + geom_histogram()
+h3 <- ggplot(dados, aes(x=Pop_Urbana)) + geom_histogram()
+h4 <- ggplot(dados, aes(x=Estupro)) + geom_histogram()
+
+grid.arrange(h1,h2,h3,h4)
+```
+
+
+
+## (a) Vetor de médias e matriz de covariâncias
+
+```{r}
+X_medias_USArrests <- colMeans(dados)
+X_medias_USArrests
+```
+
+```{r}
+X_cov_USArrests <- cov(dados)
+X_cov_USArrests
+```
+
+
+
+## (b) Matriz de correlação
+
+```{r}
+X_cor_USArrests <- cor(dados)
+X_cor_USArrests
+```
+
+### Gráfico da matriz de correlação
+
+```{r}
+corrplot(X_cor_USArrests)
+```
+
+
+Observa-se correlação positiva entre várias variáveis de crime. Em particular, **Assaulto apresenta forte correlação com Assassinato**, indicando que estados com maiores níveis de agressão tendem também a apresentar maiores taxas de homicídio.
+
+
+
+## (c) Gráfico de dispersão em pares
+
+```{r}
+ggpairs(dados) +
+  ggtitle("Relacoes entre tipos de crimes nos estados dos EUA")
+```
+
+Esse gráfico permite visualizar relações lineares, dispersões e possíveis correlações entre as variáveis.
+
+
+## (d) Gráfico de coordenadas paralelas
+
+```{r}
+ggparcoord(
+  data = estados,
+  columns = 1:4,
+  groupColumn = "Estado",
+  scale = "std"
+)
+```
+
+Nota -se  que **California e Nevada apresentam níveis mais elevados de criminalidade**, enquanto **Vermont e North Dakota apresentam valores relativamente baixos**.
+
+
+
+# Exercício 3
+
+O conjunto **PlantGrowth** contém dados de um experimento sobre o peso de plantas submetidas a diferentes tratamentos.
+
+```{r}
+glimpse(donne)
+```
+
+
+## (a) Estatísticas descritivas por grupo
+
+```{r}
+donne %>%
+  group_by(group) %>%
+  summarise(
+    min = min(weight),
+    Q1 = quantile(weight,0.25),
+    median = median(weight),
+    mean = mean(weight),
+    Q3 = quantile(weight,0.75),
+    max = max(weight)
+  )
+```
+A análise descritiva indica que **trt2** apresenta os maiores valores, **trt1** os menores e **ctrl** valores intermediários. A proximidade entre média e mediana sugere distribuição aproximadamente normal, e a pequena variação indica baixa dispersão dos dados.
+
+
+
+## (b) Boxplot
+
+```{r}
+boxplot(weight ~ group,
+        data = donne,
+        col = c("lightblue","lightgreen","lightpink"),
+        main = "Peso das plantas por grupo",
+        xlab = "Grupo",
+        ylab = "Peso")
+```
+
+O boxplot indica valores mais elevados em **trt2**, menores em **trt1** e intermediários em **ctrl**, com baixa dispersão e distribuição aparentemente simétrica.
+
+
+
+# Lista 1.2
+
+## Exercício 1
+
+Considere a matriz:
+
+```{r}
+A <- matrix(c(9,-2,-2,6), nrow=2)
+A
+```
+
+## (a) Autovalores e autovetores
+
+```{r}
+res <- eigen(A)
+
+autovalores <- res$values
+autovalores
+
+autovetores <- res$vectors
+autovetores
+```
+
+
+## (b) A matriz é definida positiva?
+```{r}
+autovalores
+```
+
+Sim. Porque os autovalores são maiores que zero, a matriz **A é definida positiva**.
+
+
+
+## (c) Decomposição espectral
+
+```{r}
+Q <- autovetores
+L <- diag(autovalores)
+
+A_Espectral <- Q %*% L %*% t(Q)
+A_Espectral
+```
+
+
+## (d) Inversa da matriz
+
+```{r}
+A_inversa <- solve(A)
+A_inversa
+```
+
+
+
+## (e) Autovalores e autovetores de A⁻¹
+
+```{r}
+res_inv <- eigen(A_inversa)
+
+autovalores_inv <- res_inv$values
+autovalores_inv
+
+autovetores_inv <- res_inv$vectors
+autovetores_inv
+```
+
+## (f) Decomposição espectral de A^-1
+
+```{r}
+Q_inv <- autovetores_inv
+L_inv <- diag(autovalores_inv)
+
+A_inv_r<- Q_inv %*% L_inv %*% t(Q_inv)
+A_inv_r
+```
+
+
+# Exercício 8 — Raiz quadrada da matriz
+
+
+ 
+```{r}
+A <-matrix(c(2,1,1,3), nrow = 2)
+A
+```
+
+
+
+## Verificações
+
+```{r}
+
+res <- eigen(A)
+
+autovalor <- res$values
+autovalor
+
+autovetor <- res$vectors
+autovetor
+
+
+autovalor_sqrt <- diag(sqrt(autovalor))
+
+A_sqrt <- autovetor %*% autovalor_sqrt %*% t(autovetor)
+
+A_sqrt
+```
+
+
+
+
+### (a) Simetria
+
+```{r}
+t(A_sqrt)
+```
+
+### (b) A^(1/2) A^(1/2) = A
+
+```{r}
+A_sqrt %*% A_sqrt
+```
+
+### (c) Inversa da raiz
+
+```{r}
+autovalor_inv_sqrt <- diag(1/sqrt(autovalor))
+
+A_inv_sqrt <- autovetor %*% autovalor_inv_sqrt %*% t(autovetor)
+
+A_inv_sqrt
+```
+
+### (d) Propriedade
+
+```{r}
+A_inv_sqrt %*% A_inv_sqrt
+
+
+
+
+# O resultado coincide com A^-1 confirmando a propriedade.
+
+solve(A)
+```
+
+
