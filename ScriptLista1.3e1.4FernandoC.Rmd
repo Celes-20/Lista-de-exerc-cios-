@@ -1,0 +1,184 @@
+---
+title: "Listas 1.3 e 1.4"
+author: "**MAE0007 - Análise Multivariada**"
+date: "2026-03-10"
+output:
+  pdf_document:
+    latex_engine: lualatex
+  html_document:
+    df_print: paged
+---
+
+UFRN - PPGMAE  
+
+
+**Professor:** Rodrigo Matheus Rocha de Medeiros  
+**Discente:** Fernando António João Correia  
+**Matrícula:** 20261006554
+
+Natal, 19 de Março de 2026
+
+
+```{r setup, include=FALSE}
+library(mvtnorm)
+library(MVN)
+```
+
+# Lista 1.3 - Exercício 4
+ - Vetor de médias 
+```{r}
+mu <- c(4, 3, 2, 1)
+mu 
+```
+ 
+
+- Matriz de covariancias 
+```{r}
+Sigma <- matrix(c(3, 0, 2, 2,
+                  0, 1, 1, 0,
+                  2, 1, 9, -2,
+                  2, 0, -2, 4), 
+                nrow = 4, ncol = 4)
+```
+
+- As matrizes **A1** e **A2**
+```{r}
+A1 <- matrix(c(1, -1), nrow = 1)
+A1
+A2 <- matrix(c(2, 0, -1, 1), nrow = 2, ncol=2)
+A2
+```
+
+- As Partições
+```{r}
+X1_media <- mu[1:2]
+X1_media
+X2_media <- mu[3:4]
+X2_media
+```
+
+
+```{r}
+Sigma11 <- Sigma[1:2, 1:2]
+Sigma11
+Sigma22 <- Sigma[3:4, 3:4]
+Sigma22
+Sigma12 <- Sigma[1:2, 3:4]
+Sigma12 
+```
+ 
+**(a) E(X1)**
+```{r}
+E_X1 <- X1_media
+E_X1
+```
+ 
+ **(b) E(A1X1)**
+```{r}
+E_A1_X1 <- A1 %*% X1_media
+E_A1_X1 
+```
+
+**(c) Var(X1)**
+```{r}
+Var_X1 <- Sigma11
+Var_X1
+
+# As variâncias no diagonal (3 e 1)
+
+```
+**(d) Var(A1X1)*
+```{r}
+Var_A1_X1 <- A1 %*% Sigma11 %*% t(A1)
+Var_A1_X1
+```
+
+**(i) Cov(X1, X2)**
+
+```{r}
+Cov_X1_X2 <- Sigma12
+Cov_X1_X2
+```
+
+**(j) Cov(A1X1, A2X2)**
+```{r}
+Cov_A1X1_A2X2 <- A1 %*% Sigma[1:2, 3:4] %*% t(A2)
+Cov_A1X1_A2X2
+```
+
+# Lista 1.4 - Exercício 5
+
+```{r}
+# Semente de Fixação
+set.seed(20261006)
+mu <- c(0,0)
+mu
+
+Sigma <- matrix(c(1, 0.7,0.7,1) , nrow=2, ncol=2)
+Sigma
+
+```
+
+**(a) Gere uma amostra aleat´oria de X de tamanho n = 500 utilizando o pacote mvtnorm do R. Fa¸ca o gr´afico em pares dos dados simulados.**
+```{r}
+X <- rmvnorm(500, mu, Sigma)
+
+head(X, 6)
+pairs(X)
+```
+
+**(b) Com a amostra gerada no item anterior, obtenha o vetor de m´edias amostrais e a matriz de covariˆancias amostrais. Compare essas quantidades com µ e Σ.**
+
+- Vetor da média
+```{r}
+V_media<-colMeans(X)
+V_media
+```
+
+- covariâncias amostrais
+```{r}
+Cov_amost<- cov(X)
+Cov_amost
+```
+
+**(c) Fa¸ca o QQ-plot e o teste de normalidade de Shapiro-Wilk para cada marginal. Comente sobre os resultados.**
+
+- QQ-plot
+
+```{r}
+par(mfrow = c(2,2)) 
+qqnorm(X[,1]) 
+qqline(X[,1])
+
+qqnorm(X[,2]) 
+qqline(X[,2]) 
+```
+
+-- Os pontos nos dois gráficos Q-Q estão bem próximos da reta, com pequenas discrepâncias apenas nas extremidades, o que indica que os dados provavelmente seguem uma distribuição normal. No entanto, serão realizados testes de normalidade nas etapas seguintes para confirmar essa hipótese.
+
+- Testes de normalidade de Shapiro - Wilk
+```{r}
+shapiro.test(X[,1]) 
+shapiro.test(X[,2])
+```
+
+-- Como osp-valores são maiores que 5%, não rejeitamos Ho. Sendo assim, os dados podem ser considerados aproximadamente normais.
+
+**(d) Obtenha as distˆancias de Mahalanobis ao quadrado e fa¸ca o QQ-plot dos valores obtidos com base na distribui¸c˜ao qui-quadrado com 2 graus de liberdade. Comente sobre o gr´afico.**
+
+- A distáncia de Mahalanobis
+```{r}
+d2 <- mahalanobis(X, colMeans(X), cov(X))
+qqplot(qchisq(ppoints(500),2), d2)
+abline(0,1)
+```
+
+-- A partir de valores em torno de 7, observa-se uma leve distorção no gráfico até o final, com alguns pontos se afastando da reta. Esse desvio é pequeno e pode não ser suficiente para indicar violação da normalidade multivariada.
+
+**(e) Fa¸ca o teste de Henze-Zirkler utilizando a fun¸c˜ao mvn do pacote MVN. Comente sobre o resultado.**
+
+```{r}
+# mvn(X, mvn_test = "hz")
+```
+-- Como p-valor = 0.291 > 0.05, não rejeitamos Ho, indicando normalidade multivariada.
+
