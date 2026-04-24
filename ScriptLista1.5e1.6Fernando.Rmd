@@ -1,0 +1,252 @@
+---
+title: "Listas 1.5 e 1.6"
+author: "**MAE0007 - Análise Multivariada**"
+date: "2026-03-10"
+output:
+  pdf_document:
+    latex_engine: lualatex
+  html_document:
+    df_print: paged
+---
+
+UFRN - PPGMAE  
+
+
+**Professor:** Rodrigo Matheus Rocha de Medeiros  
+**Discente:** Fernando António João Correia  
+**Matrícula:** 20261006554
+
+Natal, 10 de Março de 2026
+
+```{r setup, include=FALSE}
+library(ellipse) ## Para fazer as elipses de confiança
+
+library(tidyverse)
+library(GGally)
+library(MVN)
+library(biotools)
+library(rstatix)
+library(emmeans)
+
+```
+
+Exerc´ıcio 4. **Lista 1.5**
+
+```{r}
+# -------------------------
+# Dados do enunciado
+# -------------------------
+n <- 4
+p <- 2
+
+X <- matrix(c(2,12,
+              8,9,
+              6,9,
+              8,10), ncol = 2, byrow = TRUE)
+
+xbar <- matrix(colMeans(X))
+S <- cov(X)
+
+mu0 <- matrix(c(7,11))
+alpha <- 0.05
+
+# -------------------------
+# Obtendo o valor de c_alpha
+# -------------------------
+f_alpha <- qf(1 - alpha, p, n - p)
+c_alpha <- (n - 1) * p * f_alpha / (n - p)
+c_alpha
+
+```
+
+(a) Teste as hip´oteses H0 : μ = (7, 11)⊤ contra H1 : μ ̸= (7, 11)⊤ considerando um n´ıvel de significˆancia de 5%.
+
+```{r}
+## Calculando o valor de T2_0
+t2_0 <- n * mahalanobis(t(xbar), mu0, S)
+t2_0
+
+## Valor-p do teste
+1 - pf((n - p) * t2_0 / ((n - 1) * p), p, n - p)
+```
+-- Portanto, ao nível de 5%, não se rejeita H0
+em favor de H1,
+
+
+-- O valor-p obtido é de 0,1803, e é maior que o nível de significância de 5%, confirmando a decisão de não rejeitar HO.Indicando que não há evidências suficientes para afirmar que o vetor de médias difere de (7,11)^⊤.
+
+
+
+(b) Obtenha a região de confiançaa el´ıptica para μ, com confiança de 5%. Verifique se μ0 = (5, 6)^⊤ pertence à região de obtida.
+
+```{r}
+####################################### 
+RCE <- ellipse(S / n, centre = xbar, t = sqrt(c_alpha))
+
+plot(RCE, type = "l")
+
+######################################
+mu_test <- matrix(c(5,6))
+
+t2_test <- n * mahalanobis(t(xbar), mu_test, S)
+t2_test
+```
+
+-- Portanto, o vetor μ0 = (5, 6)^⊤ não pertence à região de confiança elíptica para μ ao nível de 5% de significância.
+
+
+(c) Obtenha os intervalos de confian¸ca individuais t-Student e corrigidos por Bonferroni. Utilize
+α = 0, 05.
+
+```{r}
+# t-Student
+t_alpha_2 <- qt(1 - alpha/2, n - 1)
+
+ICT1 <- xbar[1] + c(-1,1) * t_alpha_2 * sqrt(S[1,1]/n)
+ICT2 <- xbar[2] + c(-1,1) * t_alpha_2 * sqrt(S[2,2]/n)
+
+ICT1
+ICT2
+
+# Bonferroni
+t_alpha_2p <- qt(1 - alpha/(2*p), n - 1)
+
+ICB1 <- xbar[1] + c(-1,1) * t_alpha_2p * sqrt(S[1,1]/n)
+ICB2 <- xbar[2] + c(-1,1) * t_alpha_2p * sqrt(S[2,2]/n)
+ICB1
+ICB2
+
+```
+
+-- Nota-se que os intervalos com correção de Bonferroni,IC_B1 = (0.0935 ; 11.9065) e IC_B2 =(7.0467 ; 12.9533). Os intervalos de T-Student IC_T1 =(1.4993 ; 10.5007) e IC_T2 =(7.7497 ; 12.2503), ambos com nível de confiança de 95%.
+
+
+
+
+(d) Represente, em um mesmo gr´afico, a regi˜ao de confian¸ca el´ıptica e as regi˜oes retangulares
+formadas pelos intervalos individuais. Comente sobre as diferen¸cas entre os intervalos.
+```{r}
+plot(RCE, type = "l", xlab = "x1", ylab = "x2", lwd = 2,
+ylim = c(2, 25), xlim = c(0,30))
+points(xbar[1], xbar[2], pch = 3, col = 4, lwd = 3)
+rect(ICT1[1], ICT2[1], ICT1[2], ICT2[2], border = "green", lwd = 2)
+rect(ICB1[1], ICB2[1], ICB1[2], ICB2[2],border = 2, lwd = 2)
+legend("topleft", legend = c("RCE(X)", "RCT(X)", "RCB(X)"),
+col = c(1, "green", 2), lwd = c(2, 2, 2),
+lty = c(1, 1, 1), bty = "n")
+```
+
+
+
+
+- (a) No R, carregue os pacotes necessários:
+
+```{r}
+library(tidyverse)
+library(GGally)
+library(MVN)
+library(biotools)
+library(rstatix)
+library(emmeans)
+```
+
+
+- (b) Leia o conjunto de dados:
+```{r}
+url <- "https://raw.githubusercontent.com/rdmatheus/MultivarDatasets/main/nutricao.txt"
+nutricao <- read.table(url, header = TRUE, sep = ",")
+```
+
+- (c) Construa o gráfico de perfis médios:
+```{r}
+aggregate(cbind(forca, resist, conc, sono) ~ dieta, nutricao, mean) %>%
+ggparcoord(columns = 2:5, groupColumn = 1, scale = "globalminmax")
+aggregate(cbind(forca, resist, conc, sono) ~ dieta, nutricao, mean)
+```
+
+Descreva os principais padr˜oes observados e poss´ıveis diferenc¸as entre as dietas.
+
+--- A dieta proteica apresenta os maiores valores na maioria das variáveis, enquanto que o tradiconal apresentam menores valores na resistência e na força.
+
+
+
+- (d) Verifique a suposi¸c˜ao de normalidade multivariada em cada grupo por meio do teste de Henze-
+Zirkler:
+```{r}
+result_mvn <- mvn(nutricao, subset = "dieta")
+result_mvn$multivariate_normality
+```
+--- Os resultados do teste de Henze-Zirkler indicam que não há evidências para rejeitar a normalidade multivariada em nenhuma das dietas, pois todos os p-valores são maiores que 0,05.
+
+
+(e) Verifique a hip´otese de homogeneidade das matrizes de covariˆancia utilizando o testeMde Box:
+
+```{r}
+boxM(nutricao[, 2:5], nutricao$dieta)
+```
+--- Não há evidências de heterogeneidade das covariâncias entre as dietas, p-valor = 0,4185.Indicando que a suposição da MANOVA é atendida.
+
+
+(f) Ajuste o modelo MANOVA e utilize o tra¸co de Pillai:
+```{r}
+modelo <- manova(cbind(forca, resist, conc, sono) ~ dieta, nutricao)
+summary(modelo)
+```
+
+---  Há pelo menos uma diferença significativa entre as dietas considerando todas as variáveis em conjunto, p - valor < 0,001.
+
+- (g) Caso o resultado da MANOVA seja significativo, realize análises de variância univariadas para cada variável:
+
+```{r}
+summary.aov(modelo)
+```
+
+--- Força, há diferença significativa entre as dietas (p < 0,001).
+
+
+--- Resistência, há diferença significativa entre as dietas (p < 0,001).
+
+
+--- Concentração, há diferença significativa entre as dietas (p < 0,05).
+
+
+--- Sono, não há diferença significativa entre as dietas (p = 0,4873).
+
+
+- (h) Realize comparações múltiplas entre as dietas para cada variável resposta:
+### Força
+```{r}
+emmeans_test(nutricao, forca ~ dieta) %>%
+select(group1, group2, p)
+```
+
+--- Todas as dietas diferem entre si
+
+
+### Resistência
+```{r}
+emmeans_test(nutricao, resist ~ dieta) %>%
+select(group1, group2, p)
+```
+---Todas as dietas diferem entre si
+
+
+### Concentração
+```{r}
+emmeans_test(nutricao, conc ~ dieta) %>%
+select(group1, group2, p)
+```
+
+--- há diferença entre Balanceada vs Proteica e Proteica vs Tradicional, mas não entre Balanceada vs Tradicional.
+
+
+### Sono
+```{r}
+emmeans_test(nutricao, sono ~ dieta) %>%
+select(group1, group2, p)
+```
+
+Não há diferenças entre as dietas.
+
+***obs:*** Essas interpretações considerei 5% de significãncia. 
+
